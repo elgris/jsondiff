@@ -1,44 +1,10 @@
 package jsondiff
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
-
-// func TestA(t *testing.T) {
-// 	a := map[string]interface{}{
-// 		"test1": 12,
-// 		"test3": 23,
-// 	}
-// 	b := map[string]interface{}{
-// 		"test1": 12,
-// 		"test2": 12,
-// 	}
-
-// 	diffA := NewDiffMap(a)
-// 	diffB := NewDiffMap(b)
-
-// for _, k := range diffA.Keys() {
-// 	vA, _ := diffA.Get(k)
-// 	vA.Mark(k)
-
-// 	vB, ok := diffB.Get(k)
-// 	if !ok {
-// 		diffA.Mark(k, GREEN)
-// 		continue
-// 	}
-
-// 	if !compare(vA, vB) {
-// 		diffA.Mark(k, YELLOW)
-// 		diffB.Mark(k, YELLOW)
-// 	}
-// }
-
-// for _, k := range diffB.Unmarked() {
-// 	diffB.Mark(k, GREEN)
-// }
-
-// }
 
 func TestDiff(t *testing.T) {
 	mapA := map[string]interface{}{
@@ -143,57 +109,64 @@ func TestDiff(t *testing.T) {
 		},
 	}
 
-	expectedResult := []DiffItem{
-		{"fieldA", 12, TypeEquals, nil},
+	// Limitations and gotchas:
+	// 1. all numeric types converted to interface{}
+	// 2. all slice types converted to []interface{}
+	// 3. all map types converted to map[string]interface{}
+	// 4. at the end keys are sorted alphabetically
+	expected := []DiffItem{
+		{"fieldA", 12., TypeEquals, nil},
+
+		{"fieldArray1", []interface{}{1., 2., 3., 4., 5.}, TypeEquals, nil},
+		{"fieldArray2", []interface{}{1., 4., 2., 3., 5.}, TypeNotEquals, []interface{}{1., 2., 3., 4., 5.}},
+		{"fieldArray3", []interface{}{1., 2., 3.}, TypeNotEquals, []interface{}{1., 4., 5.}},
+		{"fieldArray4", []interface{}{"foo", "bar", "baz"}, TypeEquals, nil},
+		{"fieldArray5", []interface{}{"foo", "bar", "baz"}, TypeNotEquals, []interface{}{"baz", "bar", "foo"}},
+		{"fieldArray6", []interface{}{"bar", "baz"}, TypeNotEquals, []interface{}{1., 2.}},
+
 		{"fieldB", "foo", TypeNotEquals, "bar"},
 		{"fieldC", 34.55, TypeRemoved, nil},
 		{"fieldD", 11.22, TypeNotEquals, 11.33},
-		{"fieldE", "baz", TypeNotEquals, 100500},
-		{"fieldX", nil, TypeAdded, "bazfoo"},
-		{"fieldZ", "foobar", TypeRemoved, nil},
+		{"fieldE", "baz", TypeNotEquals, 100500.},
 
-		{"fieldArray1", []int{1, 2, 3, 4, 5}, TypeEquals, nil},
-		{"fieldArray2", []int{1, 2, 3, 4, 5}, TypeNotEquals, []int{1, 2, 3, 4, 5}},
-		{"fieldArray3", []int{1, 2, 3}, TypeNotEquals, []int{1, 4, 5}},
-		{"fieldArray4", []string{"foo", "bar", "baz"}, TypeEquals, nil},
-		{"fieldArray5", []string{"foo", "bar", "baz"}, TypeNotEquals, []string{"baz", "bar", "foo"}},
-		{"fieldArray6", []string{"bar", "baz"}, TypeNotEquals, []int{1, 2}},
-
-		{"fieldMap1", map[string]int{"mapA": 10, "mapB": 100, "mapC": 1001}, TypeEquals, nil},
+		{"fieldMap1", map[string]interface{}{"mapA": 10., "mapB": 100., "mapC": 1001.}, TypeEquals, nil},
 		{"fieldMap2", nil, TypeDiff, []DiffItem{
-			{"mapA", 10, TypeRemoved, nil},
-			{"mapB", 100, TypeEquals, nil},
-			{"mapC", nil, TypeAdded, 100},
+			{"mapA", 10., TypeRemoved, nil},
+			{"mapB", 100., TypeEquals, nil},
+			{"mapC", nil, TypeAdded, 100.},
 		}},
 
 		{"fieldNested1", nil, TypeDiff, []DiffItem{
-			{"fieldA", 12, TypeEquals, nil},
-			{"fieldB", "foo", TypeNotEquals, "bar"},
-			{"fieldC", 34.55, TypeRemoved, nil},
-			{"fieldD", 11.22, TypeNotEquals, 11.33},
-			{"fieldE", "baz", TypeNotEquals, 100500},
-			{"fieldX", nil, TypeAdded, "bazfoo"},
-			{"fieldZ", "foobar", TypeRemoved, nil},
+			{"fieldNested1A", 12., TypeEquals, nil},
 
-			{"fieldArray1", []int{1, 2, 3, 4, 5}, TypeEquals, nil},
-			{"fieldArray2", []int{1, 2, 3, 4, 5}, TypeNotEquals, []int{1, 2, 3, 4, 5}},
-			{"fieldArray3", []int{1, 2, 3}, TypeNotEquals, []int{1, 4, 5}},
-			{"fieldArray4", []string{"foo", "bar", "baz"}, TypeEquals, nil},
-			{"fieldArray5", []string{"foo", "bar", "baz"}, TypeNotEquals, []string{"baz", "bar", "foo"}},
-			{"fieldArray6", []string{"bar", "baz"}, TypeNotEquals, []int{1, 2}},
+			{"fieldNested1Array1", []interface{}{1., 2., 3., 4., 5.}, TypeEquals, nil},
+			{"fieldNested1Array2", []interface{}{1., 4., 2., 3., 5.}, TypeNotEquals, []interface{}{1., 2., 3., 4., 5.}},
+			{"fieldNested1Array3", []interface{}{1., 2., 3.}, TypeNotEquals, []interface{}{1., 4., 5.}},
+			{"fieldNested1Array4", []interface{}{"foo", "bar", "baz"}, TypeEquals, nil},
+			{"fieldNested1Array5", []interface{}{"foo", "bar", "baz"}, TypeNotEquals, []interface{}{"baz", "bar", "foo"}},
+			{"fieldNested1Array6", []interface{}{"bar", "baz"}, TypeNotEquals, []interface{}{"foo", "baz"}},
 
-			{"fieldMap1", map[string]int{"mapA": 10, "mapB": 100, "mapC": 1001}, TypeEquals, nil},
-			{"fieldMap2", nil, TypeDiff, []DiffItem{
-				{"mapA", 10, TypeRemoved, nil},
-				{"mapB", 100, TypeEquals, nil},
-				{"mapC", nil, TypeAdded, 100},
+			{"fieldNested1B", "foo", TypeNotEquals, "bar"},
+			{"fieldNested1C", 34.55, TypeRemoved, nil},
+			{"fieldNested1D", 11.22, TypeNotEquals, 11.33},
+			{"fieldNested1E", "baz", TypeNotEquals, 100500.},
+
+			{"fieldNested1Map1", map[string]interface{}{"mapA": 10., "mapB": 100., "mapC": 1001.}, TypeEquals, nil},
+			{"fieldNested1Map2", nil, TypeDiff, []DiffItem{
+				{"mapA", 10., TypeRemoved, nil},
+				{"mapB", 100., TypeEquals, nil},
+				{"mapC", nil, TypeAdded, 100.},
 			}},
+
+			{"fieldNested1X", nil, TypeAdded, "bazfoo"},
+			{"fieldNested1Z", "foobar", TypeRemoved, nil},
 		}},
+
+		{"fieldX", nil, TypeAdded, "bazfoo"},
+		{"fieldZ", "foobar", TypeRemoved, nil},
 	}
 
 	actual := Diff(mapA, mapB)
 
-	if !reflect.DeepEqual(expectedResult, actual) {
-		t.Fatalf("expected result not equal to actual")
-	}
+	assert.Equal(t, expected, actual)
 }

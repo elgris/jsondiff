@@ -1,5 +1,11 @@
 package jsondiff
 
+import (
+	"encoding/json"
+	"reflect"
+	"sort"
+)
+
 /*
    - sort keys
    - for each key from A check if the key is existing in B:
@@ -32,26 +38,50 @@ type DiffItem struct {
 	ValueB     interface{}
 }
 
-func Diff(a, b map[string]interface{}) []DiffItem {
-	return compareStringMaps(a, b)
+type byKey []DiffItem
+
+func (m byKey) Len() int           { return len(m) }
+func (m byKey) Less(i, j int) bool { return m[i].Key < m[j].Key }
+func (m byKey) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
+
+func Diff(a, b interface{}) []DiffItem {
+	mapA := map[string]interface{}{}
+	mapB := map[string]interface{}{}
+
+	jsonA, _ := json.Marshal(a)
+	jsonB, _ := json.Marshal(b)
+
+	json.Unmarshal(jsonA, &mapA)
+	json.Unmarshal(jsonB, &mapB)
+
+	return compareStringMaps(mapA, mapB)
 }
 
 func compare(A, B interface{}) (ResolutionType, []DiffItem) {
+	equals := reflect.DeepEqual(A, B)
+	if equals {
+		return TypeEquals, nil
+	}
+
+	mapA, okA := A.(map[string]interface{})
+	mapB, okB := B.(map[string]interface{})
+
+	if okA && okB {
+		diff := compareStringMaps(mapA, mapB)
+		return TypeDiff, diff
+	}
+
 	return TypeNotEquals, nil
-	/*
-				Cases:
-		        - A,B - simple types (int, double, string)
-		        - A,B - array types (array, slice)
-		        - A,B - map[string]* types
-		        - The rest of cases
-
-	*/
-
 }
 
 func compareStringMaps(A, B map[string]interface{}) []DiffItem {
+	keysA := sortedKeys(A)
+	keysB := sortedKeys(B)
+
 	result := []DiffItem{}
-	for kA, vA := range A {
+
+	for _, kA := range keysA {
+		vA := A[kA]
 
 		vB, ok := B[kA]
 		if !ok {
@@ -71,11 +101,24 @@ func compareStringMaps(A, B map[string]interface{}) []DiffItem {
 		}
 	}
 
-	for kB, vB := range B {
-		if _, ok := B[kB]; !ok {
-			result = append(result, DiffItem{kB, nil, TypeAdded, vB})
+	for _, kB := range keysB {
+		if _, ok := A[kB]; !ok {
+			result = append(result, DiffItem{kB, nil, TypeAdded, B[kB]})
 		}
 	}
 
+	sort.Sort(byKey(result))
+
 	return result
+}
+
+func sortedKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k, _ := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	return keys
 }
