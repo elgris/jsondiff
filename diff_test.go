@@ -1,4 +1,4 @@
-package diff
+package jsondiff
 
 import (
 	"reflect"
@@ -77,9 +77,9 @@ func TestDiff(t *testing.T) {
 			"fieldNested1Array1": []int{1, 2, 3, 4, 5},
 			"fieldNested1Array2": []int{1, 4, 2, 3, 5},
 			"fieldNested1Array3": []int{1, 2, 3},
-			"fieldNested1Array4": []int{"foo", "bar", "baz"},
-			"fieldNested1Array5": []int{"foo", "bar", "baz"},
-			"fieldNested1Array6": []int{"bar", "baz"},
+			"fieldNested1Array4": []string{"foo", "bar", "baz"},
+			"fieldNested1Array5": []string{"foo", "bar", "baz"},
+			"fieldNested1Array6": []string{"bar", "baz"},
 
 			"fieldNested1Map1": map[string]int{
 				"mapA": 10,
@@ -127,9 +127,9 @@ func TestDiff(t *testing.T) {
 			"fieldNested1Array1": []int{1, 2, 3, 4, 5},
 			"fieldNested1Array2": []int{1, 2, 3, 4, 5},
 			"fieldNested1Array3": []int{1, 4, 5},
-			"fieldNested1Array4": []int{"foo", "bar", "baz"},
-			"fieldNested1Array5": []int{"baz", "bar", "foo"},
-			"fieldNested1Array6": []int{"foo", "baz"},
+			"fieldNested1Array4": []string{"foo", "bar", "baz"},
+			"fieldNested1Array5": []string{"baz", "bar", "foo"},
+			"fieldNested1Array6": []string{"foo", "baz"},
 
 			"fieldNested1Map1": map[string]int{
 				"mapB": 100,
@@ -144,56 +144,56 @@ func TestDiff(t *testing.T) {
 	}
 
 	expectedResult := []DiffItem{
-		{"fieldA", 12, Equals},
-		{"fieldB", "foo", NotEquals, "bar"},
-		{"fieldC", 34.55, Removed},
-		{"fieldD", 11.22, NotEquals, 11.33},
-		{"fieldE", "baz", NotEquals, 100500},
-		{"fieldX", nil, Added, "bazfoo"},
-		{"fieldZ", "foobar", Removed},
+		{"fieldA", 12, TypeEquals, nil},
+		{"fieldB", "foo", TypeNotEquals, "bar"},
+		{"fieldC", 34.55, TypeRemoved, nil},
+		{"fieldD", 11.22, TypeNotEquals, 11.33},
+		{"fieldE", "baz", TypeNotEquals, 100500},
+		{"fieldX", nil, TypeAdded, "bazfoo"},
+		{"fieldZ", "foobar", TypeRemoved, nil},
 
-		{"fieldArray1", []int{1, 2, 3, 4, 5}, Equals},
-		{"fieldArray2", []int{1, 2, 3, 4, 5}, NotEquals, []int{1, 2, 3, 4, 5}},
-		{"fieldArray3", []int{1, 2, 3}, NotEquals, []int{1, 4, 5}},
-		{"fieldArray4": []string{"foo", "bar", "baz"}, Equals},
-		{"fieldArray5": []string{"foo", "bar", "baz"}, NotEquals, []string{"baz", "bar", "foo"}},
-		{"fieldArray6": []string{"bar", "baz"}, NotEquals, []int{1, 2}},
+		{"fieldArray1", []int{1, 2, 3, 4, 5}, TypeEquals, nil},
+		{"fieldArray2", []int{1, 2, 3, 4, 5}, TypeNotEquals, []int{1, 2, 3, 4, 5}},
+		{"fieldArray3", []int{1, 2, 3}, TypeNotEquals, []int{1, 4, 5}},
+		{"fieldArray4", []string{"foo", "bar", "baz"}, TypeEquals, nil},
+		{"fieldArray5", []string{"foo", "bar", "baz"}, TypeNotEquals, []string{"baz", "bar", "foo"}},
+		{"fieldArray6", []string{"bar", "baz"}, TypeNotEquals, []int{1, 2}},
 
-		{"fieldMap1", map[string]int{"mapA": 10, "mapB": 100, "mapC": 1001}, Equals},
-		{"fieldMap2", nil, Diff, []DiffItem{
-			{"mapA", 10, Removed},
-			{"mapB", 100, Equals},
-			{"mapC", nil, Added, 100},
+		{"fieldMap1", map[string]int{"mapA": 10, "mapB": 100, "mapC": 1001}, TypeEquals, nil},
+		{"fieldMap2", nil, TypeDiff, []DiffItem{
+			{"mapA", 10, TypeRemoved, nil},
+			{"mapB", 100, TypeEquals, nil},
+			{"mapC", nil, TypeAdded, 100},
 		}},
 
-		{"fieldNested1", nil, Diff, []DiffItem{
-			{"fieldA", 12, Equals},
-			{"fieldB", "foo", NotEquals, "bar"},
-			{"fieldC", 34.55, Removed},
-			{"fieldD", 11.22, NotEquals, 11.33},
-			{"fieldE", "baz", NotEquals, 100500},
-			{"fieldX", nil, Added, "bazfoo"},
-			{"fieldZ", "foobar", Removed},
+		{"fieldNested1", nil, TypeDiff, []DiffItem{
+			{"fieldA", 12, TypeEquals, nil},
+			{"fieldB", "foo", TypeNotEquals, "bar"},
+			{"fieldC", 34.55, TypeRemoved, nil},
+			{"fieldD", 11.22, TypeNotEquals, 11.33},
+			{"fieldE", "baz", TypeNotEquals, 100500},
+			{"fieldX", nil, TypeAdded, "bazfoo"},
+			{"fieldZ", "foobar", TypeRemoved, nil},
 
-			{"fieldArray1", []int{1, 2, 3, 4, 5}, Equals},
-			{"fieldArray2", []int{1, 2, 3, 4, 5}, NotEquals, []int{1, 2, 3, 4, 5}},
-			{"fieldArray3", []int{1, 2, 3}, NotEquals, []int{1, 4, 5}},
-			{"fieldArray4": []string{"foo", "bar", "baz"}, Equals},
-			{"fieldArray5": []string{"foo", "bar", "baz"}, NotEquals, []string{"baz", "bar", "foo"}},
-			{"fieldArray6": []string{"bar", "baz"}, NotEquals, []int{1, 2}},
+			{"fieldArray1", []int{1, 2, 3, 4, 5}, TypeEquals, nil},
+			{"fieldArray2", []int{1, 2, 3, 4, 5}, TypeNotEquals, []int{1, 2, 3, 4, 5}},
+			{"fieldArray3", []int{1, 2, 3}, TypeNotEquals, []int{1, 4, 5}},
+			{"fieldArray4", []string{"foo", "bar", "baz"}, TypeEquals, nil},
+			{"fieldArray5", []string{"foo", "bar", "baz"}, TypeNotEquals, []string{"baz", "bar", "foo"}},
+			{"fieldArray6", []string{"bar", "baz"}, TypeNotEquals, []int{1, 2}},
 
-			{"fieldMap1", map[string]int{"mapA": 10, "mapB": 100, "mapC": 1001}, Equals},
-			{"fieldMap2", nil, Diff, []DiffItem{
-				{"mapA", 10, Removed},
-				{"mapB", 100, Equals},
-				{"mapC", nil, Added, 100},
+			{"fieldMap1", map[string]int{"mapA": 10, "mapB": 100, "mapC": 1001}, TypeEquals, nil},
+			{"fieldMap2", nil, TypeDiff, []DiffItem{
+				{"mapA", 10, TypeRemoved, nil},
+				{"mapB", 100, TypeEquals, nil},
+				{"mapC", nil, TypeAdded, 100},
 			}},
 		}},
 	}
 
 	actual := Diff(mapA, mapB)
 
-	if !reflect.DeepEqual(m1, m2) {
+	if !reflect.DeepEqual(expectedResult, actual) {
 		t.Fatalf("expected result not equal to actual")
 	}
 }
