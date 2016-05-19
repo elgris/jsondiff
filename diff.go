@@ -1,25 +1,13 @@
 package jsondiff
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"reflect"
 	"sort"
 )
-
-/*
-   - sort keys
-   - for each key from A check if the key is existing in B:
-      - if existing, then compare A[k] and B[k]:
-          - if they are basic type (comparable), then just compare
-          - if they are different types, then mark them as "non-equal" (yellow) immediately
-          - if they are arrays - compare them according arrays comparison (position-wise)
-          - if they are maps - run this algorithm recursively
-      - if B[k] is not existing - mark it as "green" in A
-      - mark k as "checked"
-   - for each key k2 from B:
-       - if k2 is "checked" - skip
-       - otherwise - mark it as "green" in B
-*/
 
 type ResolutionType int
 
@@ -55,6 +43,62 @@ func Diff(a, b interface{}) []DiffItem {
 	json.Unmarshal(jsonB, &mapB)
 
 	return compareStringMaps(mapA, mapB)
+}
+
+func Format(items []DiffItem) []byte {
+	buf := bytes.Buffer{}
+
+	writeItems(&buf, "", items)
+
+	return buf.Bytes()
+}
+
+func writeItems(writer io.Writer, prefix string, items []DiffItem) {
+	writer.Write([]byte{'{'})
+	last := len(items) - 1
+
+	prefixNotEqualsA := prefix + "<> "
+	prefixNotEqualsB := prefix + "** "
+	prefixAdded := prefix + "<< "
+	prefixRemoved := prefix + ">> "
+
+	for i, item := range items {
+		writer.Write([]byte{'\n'})
+
+		switch item.Resolution {
+		case TypeEquals:
+			writeItem(writer, prefix, item.Key, item.ValueA, i < last)
+		case TypeNotEquals:
+			writeItem(writer, prefixNotEqualsA, item.Key, item.ValueA, i < last)
+
+			writer.Write([]byte{'\n'})
+
+			writeItem(writer, prefixNotEqualsB, item.Key, item.ValueB, i < last)
+		case TypeAdded:
+			writeItem(writer, prefixAdded, item.Key, item.ValueB, i < last)
+		case TypeRemoved:
+			writeItem(writer, prefixRemoved, item.Key, item.ValueA, i < last)
+		case TypeDiff:
+			subdiff := item.ValueB.([]DiffItem)
+			fmt.Fprintf(writer, "%s\"%s\": ", prefix, item.Key)
+			writeItems(writer, prefix+"    ", subdiff)
+			if i < last {
+				writer.Write([]byte{','})
+			}
+		}
+
+	}
+
+	fmt.Fprintf(writer, "\n%s}", prefix)
+}
+
+func writeItem(writer io.Writer, prefix, key string, value interface{}, isNotLast bool) {
+	fmt.Fprintf(writer, "%s\"%s\": ", prefix, key)
+	serialized, _ := json.Marshal(value)
+	writer.Write(serialized)
+	if isNotLast {
+		writer.Write([]byte{','})
+	}
 }
 
 func compare(A, B interface{}) (ResolutionType, []DiffItem) {

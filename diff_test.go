@@ -167,6 +167,66 @@ func TestDiff(t *testing.T) {
 	}
 
 	actual := Diff(mapA, mapB)
-
 	assert.Equal(t, expected, actual)
+	// Check formatted readable output
+
+	expectedDiff := `{
+"fieldA": 12,
+"fieldArray1": [1,2,3,4,5],
+<> "fieldArray2": [1,4,2,3,5],
+** "fieldArray2": [1,2,3,4,5],
+<> "fieldArray3": [1,2,3],
+** "fieldArray3": [1,4,5],
+"fieldArray4": ["foo","bar","baz"],
+<> "fieldArray5": ["foo","bar","baz"],
+** "fieldArray5": ["baz","bar","foo"],
+<> "fieldArray6": ["bar","baz"],
+** "fieldArray6": [1,2],
+<> "fieldB": "foo",
+** "fieldB": "bar",
+>> "fieldC": 34.55,
+<> "fieldD": 11.22,
+** "fieldD": 11.33,
+<> "fieldE": "baz",
+** "fieldE": 100500,
+"fieldMap1": {"mapA":10,"mapB":100,"mapC":1001},
+"fieldMap2": {
+    >> "mapA": 10,
+    "mapB": 100,
+    << "mapC": 100
+    },
+"fieldNested1": {
+    "fieldNested1A": 12,
+    "fieldNested1Array1": [1,2,3,4,5],
+    <> "fieldNested1Array2": [1,4,2,3,5],
+    ** "fieldNested1Array2": [1,2,3,4,5],
+    <> "fieldNested1Array3": [1,2,3],
+    ** "fieldNested1Array3": [1,4,5],
+    "fieldNested1Array4": ["foo","bar","baz"],
+    <> "fieldNested1Array5": ["foo","bar","baz"],
+    ** "fieldNested1Array5": ["baz","bar","foo"],
+    <> "fieldNested1Array6": ["bar","baz"],
+    ** "fieldNested1Array6": ["foo","baz"],
+    <> "fieldNested1B": "foo",
+    ** "fieldNested1B": "bar",
+    >> "fieldNested1C": 34.55,
+    <> "fieldNested1D": 11.22,
+    ** "fieldNested1D": 11.33,
+    <> "fieldNested1E": "baz",
+    ** "fieldNested1E": 100500,
+    "fieldNested1Map1": {"mapA":10,"mapB":100,"mapC":1001},
+    "fieldNested1Map2": {
+        >> "mapA": 10,
+        "mapB": 100,
+        << "mapC": 100
+        },
+    << "fieldNested1X": "bazfoo",
+    >> "fieldNested1Z": "foobar"
+    },
+<< "fieldX": "bazfoo",
+>> "fieldZ": "foobar"
+}`
+	actualDiff := string(Format(actual))
+
+	assert.Equal(t, expectedDiff, actualDiff)
 }
