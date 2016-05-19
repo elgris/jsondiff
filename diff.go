@@ -7,6 +7,8 @@ import (
 	"io"
 	"reflect"
 	"sort"
+
+	"github.com/mgutz/ansi"
 )
 
 type ResolutionType int
@@ -17,6 +19,13 @@ const (
 	TypeAdded
 	TypeRemoved
 	TypeDiff
+)
+
+var (
+	colorStartYellow = ansi.ColorCode("yellow")
+	colorStartRed    = ansi.ColorCode("red")
+	colorStartGreen  = ansi.ColorCode("green")
+	colorReset       = ansi.ColorCode("reset")
 )
 
 type DiffItem struct {
@@ -69,15 +78,21 @@ func writeItems(writer io.Writer, prefix string, items []DiffItem) {
 		case TypeEquals:
 			writeItem(writer, prefix, item.Key, item.ValueA, i < last)
 		case TypeNotEquals:
+			writer.Write([]byte(colorStartYellow))
+
 			writeItem(writer, prefixNotEqualsA, item.Key, item.ValueA, i < last)
-
 			writer.Write([]byte{'\n'})
-
 			writeItem(writer, prefixNotEqualsB, item.Key, item.ValueB, i < last)
+
+			writer.Write([]byte(colorReset))
 		case TypeAdded:
+			writer.Write([]byte(colorStartGreen))
 			writeItem(writer, prefixAdded, item.Key, item.ValueB, i < last)
+			writer.Write([]byte(colorReset))
 		case TypeRemoved:
+			writer.Write([]byte(colorStartRed))
 			writeItem(writer, prefixRemoved, item.Key, item.ValueA, i < last)
+			writer.Write([]byte(colorReset))
 		case TypeDiff:
 			subdiff := item.ValueB.([]DiffItem)
 			fmt.Fprintf(writer, "%s\"%s\": ", prefix, item.Key)
