@@ -167,5 +167,6 @@ func TestDiff(t *testing.T) {
 	}
 
 	actual := Diff(mapA, mapB)
+
 	assert.Equal(t, expected, actual)
 }

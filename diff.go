@@ -11,6 +11,8 @@ import (
 	"github.com/mgutz/ansi"
 )
 
+// ResolutionType defines a type of comparison: equality, non-equality,
+// new sub-diff and so on
 type ResolutionType int
 
 const (
@@ -28,6 +30,7 @@ var (
 	colorReset       = ansi.ColorCode("reset")
 )
 
+// DiffItem defines a difference between 2 items with resolution type
 type DiffItem struct {
 	Key        string
 	ValueA     interface{}
@@ -41,6 +44,10 @@ func (m byKey) Len() int           { return len(m) }
 func (m byKey) Less(i, j int) bool { return m[i].Key < m[j].Key }
 func (m byKey) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
 
+// Diff produces list of diff items that define difference between
+// objects "a" and "b".
+// Note: if objects are equal, all diff items will have Resolution of
+// type TypeEquals
 func Diff(a, b interface{}) []DiffItem {
 	mapA := map[string]interface{}{}
 	mapB := map[string]interface{}{}
@@ -54,6 +61,9 @@ func Diff(a, b interface{}) []DiffItem {
 	return compareStringMaps(mapA, mapB)
 }
 
+// Format produces formatted output for a diff that can be printed.
+// Uses colourization which may not work with terminals that don't
+// support ASCII colouring (Windows is under question).
 func Format(items []DiffItem) []byte {
 	buf := bytes.Buffer{}
 
@@ -173,7 +183,7 @@ func compareStringMaps(A, B map[string]interface{}) []DiffItem {
 
 func sortedKeys(m map[string]interface{}) []string {
 	keys := make([]string, 0, len(m))
-	for k, _ := range m {
+	for k := range m {
 		keys = append(keys, k)
 	}
 
