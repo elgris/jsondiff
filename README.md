@@ -10,6 +10,8 @@ go get github.com/elgris/jsondiff
 
 ## Examples of the output
 
+<img width="508" alt="screen shot 2016-05-20 at 13 03 06" src="https://cloud.githubusercontent.com/assets/1905821/15427207/58a141e2-1e8b-11e6-8d99-c2d752a80699.png">
+
 ## Limitation
 
 - Coloured output tested with `bash` only, not sure how it will behave with other terminals.
