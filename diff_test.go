@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDiff(t *testing.T) {
+func TestDiffDifferent(t *testing.T) {
 	mapA := map[string]interface{}{
 		"fieldA": 12,
 		"fieldB": "foo",
@@ -166,7 +166,71 @@ func TestDiff(t *testing.T) {
 		{"fieldZ", "foobar", TypeRemoved, nil},
 	}
 
-	actual := Diff(mapA, mapB)
+	actual := Compare(mapA, mapB)
 
-	assert.Equal(t, expected, actual)
+	assert.Equal(t, expected, actual.Items())
+	assert.False(t, actual.IsEqual())
+}
+
+func TestDiffEquals(t *testing.T) {
+	mapA := map[string]interface{}{
+		"fieldA": 12,
+		"fieldB": "foo",
+		"fieldC": 34.55,
+		"fieldZ": "foobar",
+
+		"fieldArray1": []int{1, 2, 3, 4, 5},
+		"fieldArray4": []string{"foo", "bar", "baz"},
+
+		"fieldMap2": map[string]int{
+			"mapA": 10,
+			"mapB": 100,
+		},
+
+		"fieldNested1": map[string]interface{}{
+			"fieldNested1A": 12,
+			"fieldNested1B": "foo",
+			"fieldNested1C": 34.55,
+			"fieldNested1Z": "foobar",
+
+			"fieldNested1Array1": []int{1, 2, 3, 4, 5},
+			"fieldNested1Array4": []string{"foo", "bar", "baz"},
+
+			"fieldNested1Map2": map[string]int{
+				"mapA": 10,
+				"mapB": 100,
+			},
+		},
+	}
+
+	expected := []DiffItem{
+		{"fieldA", 12., TypeEquals, nil},
+
+		{"fieldArray1", []interface{}{1., 2., 3., 4., 5.}, TypeEquals, nil},
+		{"fieldArray4", []interface{}{"foo", "bar", "baz"}, TypeEquals, nil},
+
+		{"fieldB", "foo", TypeEquals, nil},
+		{"fieldC", 34.55, TypeEquals, nil},
+
+		{"fieldMap2", map[string]interface{}{"mapA": 10., "mapB": 100.}, TypeEquals, nil},
+		{"fieldNested1", map[string]interface{}{
+			"fieldNested1A":      12.,
+			"fieldNested1Array1": []interface{}{1., 2., 3., 4., 5.},
+			"fieldNested1Array4": []interface{}{"foo", "bar", "baz"},
+			"fieldNested1B":      "foo",
+			"fieldNested1C":      34.55,
+			"fieldNested1Map2":   map[string]interface{}{"mapA": 10., "mapB": 100.},
+			"fieldNested1Z":      "foobar",
+		},
+			TypeEquals,
+			nil,
+		},
+
+		{"fieldZ", "foobar", TypeEquals, nil},
+	}
+
+	actual := Compare(mapA, mapA)
+
+	assert.Equal(t, expected, actual.Items())
+	assert.True(t, actual.IsEqual())
 }

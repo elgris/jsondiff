@@ -21,6 +21,8 @@ const (
 	TypeAdded
 	TypeRemoved
 	TypeDiff
+
+	indentation = "    "
 )
 
 var (
@@ -29,6 +31,31 @@ var (
 	colorStartGreen  = ansi.ColorCode("green")
 	colorReset       = ansi.ColorCode("reset")
 )
+
+// Diff is a result of comparison operation. Provides list
+// of items that describe difference between objects piece by piece
+type Diff struct {
+	items   []DiffItem
+	hasDiff bool
+}
+
+// Items returns list of diff items
+func (d Diff) Items() []DiffItem { return d.items }
+
+// Add adds new item to diff object
+func (d *Diff) Add(item DiffItem) {
+	d.items = append(d.items, item)
+	if item.Resolution != TypeEquals {
+		d.hasDiff = true
+	}
+}
+
+// IsEqual checks if given diff objects does not contain any non-equal
+// element. When IsEqual returns "true" that means there is no difference
+// between compared objects
+func (d Diff) IsEqual() bool { return !d.hasDiff }
+
+func (d *Diff) sort() { sort.Sort(byKey(d.items)) }
 
 // DiffItem defines a difference between 2 items with resolution type
 type DiffItem struct {
@@ -44,11 +71,11 @@ func (m byKey) Len() int           { return len(m) }
 func (m byKey) Less(i, j int) bool { return m[i].Key < m[j].Key }
 func (m byKey) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
 
-// Diff produces list of diff items that define difference between
+// Compare produces list of diff items that define difference between
 // objects "a" and "b".
 // Note: if objects are equal, all diff items will have Resolution of
 // type TypeEquals
-func Diff(a, b interface{}) []DiffItem {
+func Compare(a, b interface{}) Diff {
 	mapA := map[string]interface{}{}
 	mapB := map[string]interface{}{}
 
@@ -106,7 +133,7 @@ func writeItems(writer io.Writer, prefix string, items []DiffItem) {
 		case TypeDiff:
 			subdiff := item.ValueB.([]DiffItem)
 			fmt.Fprintf(writer, "%s\"%s\": ", prefix, item.Key)
-			writeItems(writer, prefix+"    ", subdiff)
+			writeItems(writer, prefix+indentation, subdiff)
 			if i < last {
 				writer.Write([]byte{','})
 			}
@@ -120,16 +147,17 @@ func writeItems(writer io.Writer, prefix string, items []DiffItem) {
 func writeItem(writer io.Writer, prefix, key string, value interface{}, isNotLast bool) {
 	fmt.Fprintf(writer, "%s\"%s\": ", prefix, key)
 	serialized, _ := json.Marshal(value)
+
 	writer.Write(serialized)
 	if isNotLast {
 		writer.Write([]byte{','})
 	}
 }
 
-func compare(A, B interface{}) (ResolutionType, []DiffItem) {
+func compare(A, B interface{}) (ResolutionType, Diff) {
 	equals := reflect.DeepEqual(A, B)
 	if equals {
-		return TypeEquals, nil
+		return TypeEquals, Diff{}
 	}
 
 	mapA, okA := A.(map[string]interface{})
@@ -140,43 +168,43 @@ func compare(A, B interface{}) (ResolutionType, []DiffItem) {
 		return TypeDiff, diff
 	}
 
-	return TypeNotEquals, nil
+	return TypeNotEquals, Diff{}
 }
 
-func compareStringMaps(A, B map[string]interface{}) []DiffItem {
+func compareStringMaps(A, B map[string]interface{}) Diff {
 	keysA := sortedKeys(A)
 	keysB := sortedKeys(B)
 
-	result := []DiffItem{}
+	result := Diff{}
 
 	for _, kA := range keysA {
 		vA := A[kA]
 
 		vB, ok := B[kA]
 		if !ok {
-			result = append(result, DiffItem{kA, vA, TypeRemoved, nil})
+			result.Add(DiffItem{kA, vA, TypeRemoved, nil})
 			continue
 		}
 
-		resolutionType, diffs := compare(vA, vB)
+		resolutionType, subdiff := compare(vA, vB)
 
 		switch resolutionType {
 		case TypeEquals:
-			result = append(result, DiffItem{kA, vA, TypeEquals, nil})
+			result.Add(DiffItem{kA, vA, TypeEquals, nil})
 		case TypeNotEquals:
-			result = append(result, DiffItem{kA, vA, TypeNotEquals, vB})
+			result.Add(DiffItem{kA, vA, TypeNotEquals, vB})
 		case TypeDiff:
-			result = append(result, DiffItem{kA, nil, TypeDiff, diffs})
+			result.Add(DiffItem{kA, nil, TypeDiff, subdiff.Items()})
 		}
 	}
 
 	for _, kB := range keysB {
 		if _, ok := A[kB]; !ok {
-			result = append(result, DiffItem{kB, nil, TypeAdded, B[kB]})
+			result.Add(DiffItem{kB, nil, TypeAdded, B[kB]})
 		}
 	}
 
-	sort.Sort(byKey(result))
+	result.sort()
 
 	return result
 }
