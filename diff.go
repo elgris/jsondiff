@@ -91,10 +91,10 @@ func Compare(a, b interface{}) Diff {
 // Format produces formatted output for a diff that can be printed.
 // Uses colourization which may not work with terminals that don't
 // support ASCII colouring (Windows is under question).
-func Format(items []DiffItem) []byte {
+func Format(diff Diff) []byte {
 	buf := bytes.Buffer{}
 
-	writeItems(&buf, "", items)
+	writeItems(&buf, "", diff.Items())
 
 	return buf.Bytes()
 }
