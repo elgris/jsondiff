@@ -168,7 +168,47 @@ func compare(A, B interface{}) (ResolutionType, Diff) {
 		return TypeDiff, diff
 	}
 
+	arrayA, okA := A.([]interface{})
+	arrayB, okB := B.([]interface{})
+
+	if okA && okB {
+		diff := compareArrays(arrayA, arrayB)
+		return TypeDiff, diff
+	}
+
 	return TypeNotEquals, Diff{}
+}
+
+func compareArrays(A, B []interface{}) Diff {
+	result := Diff{}
+
+	minLength := len(A)
+	if len(A) > len(B) {
+		minLength = len(B)
+	}
+
+	for i := 0; i < minLength; i++ {
+		resolutionType, subdiff := compare(A[i], B[i])
+
+		switch resolutionType {
+		case TypeEquals:
+			result.Add(DiffItem{"", A[i], TypeEquals, nil})
+		case TypeNotEquals:
+			result.Add(DiffItem{"", A[i], TypeNotEquals, B[i]})
+		case TypeDiff:
+			result.Add(DiffItem{"", nil, TypeDiff, subdiff.Items()})
+		}
+	}
+
+	for i := minLength; i < len(A); i++ {
+		result.Add(DiffItem{"", A[i], TypeRemoved, nil})
+	}
+
+	for i := minLength; i < len(B); i++ {
+		result.Add(DiffItem{"", nil, TypeAdded, B[i]})
+	}
+
+	return result
 }
 
 func compareStringMaps(A, B map[string]interface{}) Diff {

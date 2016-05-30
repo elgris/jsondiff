@@ -67,11 +67,11 @@ func TestDiffDifferent(t *testing.T) {
 		"fieldX": "bazfoo",
 
 		"fieldArray1": []int{1, 2, 3, 4, 5},
-		"fieldArray2": []int{1, 2, 3, 4, 5},
+		"fieldArray2": []int{1, 2, 3},
 		"fieldArray3": []int{1, 4, 5},
 		"fieldArray4": []string{"foo", "bar", "baz"},
 		"fieldArray5": []string{"baz", "bar", "foo"},
-		"fieldArray6": []int{1, 2},
+		"fieldArray6": []int{1, 2, 3},
 
 		"fieldMap1": map[string]int{
 			"mapB": 100,
@@ -91,11 +91,11 @@ func TestDiffDifferent(t *testing.T) {
 			"fieldNested1X": "bazfoo",
 
 			"fieldNested1Array1": []int{1, 2, 3, 4, 5},
-			"fieldNested1Array2": []int{1, 2, 3, 4, 5},
+			"fieldNested1Array2": []int{1, 2, 3},
 			"fieldNested1Array3": []int{1, 4, 5},
 			"fieldNested1Array4": []string{"foo", "bar", "baz"},
 			"fieldNested1Array5": []string{"baz", "bar", "foo"},
-			"fieldNested1Array6": []string{"foo", "baz"},
+			"fieldNested1Array6": []string{"foo", "baz", "boo"},
 
 			"fieldNested1Map1": map[string]int{
 				"mapB": 100,
@@ -118,11 +118,32 @@ func TestDiffDifferent(t *testing.T) {
 		{"fieldA", 12., TypeEquals, nil},
 
 		{"fieldArray1", []interface{}{1., 2., 3., 4., 5.}, TypeEquals, nil},
-		{"fieldArray2", []interface{}{1., 4., 2., 3., 5.}, TypeNotEquals, []interface{}{1., 2., 3., 4., 5.}},
-		{"fieldArray3", []interface{}{1., 2., 3.}, TypeNotEquals, []interface{}{1., 4., 5.}},
+		{"fieldArray2", nil, TypeDiff, []DiffItem{
+			{"", 1., TypeEquals, nil},
+			{"", 4., TypeNotEquals, 2.},
+			{"", 2., TypeNotEquals, 3.},
+			{"", 3., TypeRemoved, nil},
+			{"", 5., TypeRemoved, nil},
+		}},
+
+		{"fieldArray3", nil, TypeDiff, []DiffItem{
+			{"", 1., TypeEquals, nil},
+			{"", 2., TypeNotEquals, 4.},
+			{"", 3., TypeNotEquals, 5.},
+		}},
+
 		{"fieldArray4", []interface{}{"foo", "bar", "baz"}, TypeEquals, nil},
-		{"fieldArray5", []interface{}{"foo", "bar", "baz"}, TypeNotEquals, []interface{}{"baz", "bar", "foo"}},
-		{"fieldArray6", []interface{}{"bar", "baz"}, TypeNotEquals, []interface{}{1., 2.}},
+		{"fieldArray5", nil, TypeDiff, []DiffItem{
+			{"", "foo", TypeNotEquals, "baz"},
+			{"", "bar", TypeEquals, nil},
+			{"", "baz", TypeNotEquals, "foo"},
+		}},
+
+		{"fieldArray6", nil, TypeDiff, []DiffItem{
+			{"", "bar", TypeNotEquals, 1.},
+			{"", "baz", TypeNotEquals, 2.},
+			{"", nil, TypeAdded, 3.},
+		}},
 
 		{"fieldB", "foo", TypeNotEquals, "bar"},
 		{"fieldC", 34.55, TypeRemoved, nil},
@@ -140,11 +161,31 @@ func TestDiffDifferent(t *testing.T) {
 			{"fieldNested1A", 12., TypeEquals, nil},
 
 			{"fieldNested1Array1", []interface{}{1., 2., 3., 4., 5.}, TypeEquals, nil},
-			{"fieldNested1Array2", []interface{}{1., 4., 2., 3., 5.}, TypeNotEquals, []interface{}{1., 2., 3., 4., 5.}},
-			{"fieldNested1Array3", []interface{}{1., 2., 3.}, TypeNotEquals, []interface{}{1., 4., 5.}},
+			{"fieldNested1Array2", nil, TypeDiff, []DiffItem{
+				{"", 1., TypeEquals, nil},
+				{"", 4., TypeNotEquals, 2.},
+				{"", 2., TypeNotEquals, 3.},
+				{"", 3., TypeRemoved, nil},
+				{"", 5., TypeRemoved, nil},
+			}},
+
+			{"fieldNested1Array3", nil, TypeDiff, []DiffItem{
+				{"", 1., TypeEquals, nil},
+				{"", 2., TypeNotEquals, 4.},
+				{"", 3., TypeNotEquals, 5.},
+			}},
 			{"fieldNested1Array4", []interface{}{"foo", "bar", "baz"}, TypeEquals, nil},
-			{"fieldNested1Array5", []interface{}{"foo", "bar", "baz"}, TypeNotEquals, []interface{}{"baz", "bar", "foo"}},
-			{"fieldNested1Array6", []interface{}{"bar", "baz"}, TypeNotEquals, []interface{}{"foo", "baz"}},
+			{"fieldNested1Array5", nil, TypeDiff, []DiffItem{
+				{"", "foo", TypeNotEquals, "baz"},
+				{"", "bar", TypeEquals, nil},
+				{"", "baz", TypeNotEquals, "foo"},
+			}},
+
+			{"fieldNested1Array6", nil, TypeDiff, []DiffItem{
+				{"", "bar", TypeNotEquals, "foo"},
+				{"", "baz", TypeEquals, nil},
+				{"", nil, TypeAdded, "boo"},
+			}},
 
 			{"fieldNested1B", "foo", TypeNotEquals, "bar"},
 			{"fieldNested1C", 34.55, TypeRemoved, nil},
@@ -167,6 +208,9 @@ func TestDiffDifferent(t *testing.T) {
 	}
 
 	actual := Compare(mapA, mapB)
+
+	// pretty.Println("expected", expected)
+	// pretty.Println("actual", actual.Items())
 
 	assert.Equal(t, expected, actual.Items())
 	assert.False(t, actual.IsEqual())
